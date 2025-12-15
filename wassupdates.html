@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<!--
+WASS UPDATES – REAL OTP (SMS) + 3D UI + ADMIN DASHBOARD
+----------------------------------------------------
+IMPORTANT:
+1) This uses FIREBASE PHONE AUTH for REAL SMS OTP
+2) Replace the firebaseConfig values with YOUR keys
+3) Admin PIN is demo-only. Secure it server-side for production.
+4) Save this file as: index.html
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wass Updates</title>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <style>
+    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#070b18;color:#e5e7eb;overflow-x:hidden}
+    header{text-align:center;padding:40px 20px}
+    h1{font-size:40px;letter-spacing:1px}
+
+    /* 3D animation */
+    .cube-wrap{perspective:1000px;display:flex;justify-content:center;margin:30px 0}
+    .cube{width:120px;height:120px;position:relative;transform-style:preserve-3d;animation:spin 10s linear infinite}
+    .face{position:absolute;width:120px;height:120px;background:#2563ebaa;border:2px solid #38bdf8;display:flex;align-items:center;justify-content:center;font-weight:bold}
+    .f1{transform:translateZ(60px)}
+    .f2{transform:rotateY(90deg) translateZ(60px)}
+    .f3{transform:rotateY(180deg) translateZ(60px)}
+    .f4{transform:rotateY(-90deg) translateZ(60px)}
+    .f5{transform:rotateX(90deg) translateZ(60px)}
+    .f6{transform:rotateX(-90deg) translateZ(60px)}
+    @keyframes spin{from{transform:rotateX(0) rotateY(0)}to{transform:rotateX(360deg) rotateY(360deg)}}
+
+    main{max-width:420px;margin:auto;padding:20px}
+    .card{background:#020617;border-radius:16px;padding:20px;margin-bottom:20px;box-shadow:0 20px 40px rgba(0,0,0,.4)}
+    input,button{width:100%;padding:12px;border-radius:10px;border:none;margin:8px 0}
+    button{background:#2563eb;color:white;font-weight:bold;cursor:pointer}
+    .hidden{display:none}
+    footer{text-align:center;padding:15px;font-size:14px;background:#020617}
+    a{color:#38bdf8;text-decoration:none}
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>📡 Wass Updates</h1>
+  <p>Fast • Verified • Real-time Updates</p>
+
+  <div class="cube-wrap">
+    <div class="cube">
+      <div class="face f1">WASS</div>
+      <div class="face f2">UPDATES</div>
+      <div class="face f3">FAST</div>
+      <div class="face f4">SAFE</div>
+      <div class="face f5">REAL</div>
+      <div class="face f6">NOW</div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- LOGIN -->
+  <div class="card" id="login">
+    <h3>Enter your phone number</h3>
+    <input id="phone" placeholder="+250788123456" />
+    <div id="recaptcha"></div>
+    <button onclick="sendOTP()">Send OTP</button>
+    <p>⏳ You will receive your verification code after 1 minute</p>
+  </div>
+
+  <!-- VERIFY -->
+  <div class="card hidden" id="verify">
+    <h3>Enter verification code</h3>
+    <input id="otp" placeholder="6-digit code" />
+    <button onclick="verifyOTP()">Verify</button>
+  </div>
+
+  <!-- HOME -->
+  <div class="card hidden" id="home">
+    <h3>🔥 Wass Updates</h3>
+    <ul>
+      <li>⚡ Fast verified updates</li>
+      <li>📱 Mobile-first platform</li>
+      <li>🛡️ Secure access</li>
+      <li>🔔 Important alerts</li>
+    </ul>
+    <p><b>Powered by Ben ⚡</b></p>
+  </div>
+
+  <!-- ADMIN -->
+  <div class="card hidden" id="admin">
+    <h3>Admin Dashboard</h3>
+    <input id="adminPin" placeholder="Admin PIN" />
+    <button onclick="adminLogin()">Access</button>
+    <div id="adminData"></div>
+  </div>
+
+  <p style="text-align:center"><a href="#" onclick="showAdmin()">Admin</a></p>
+</main>
+
+<footer>
+  © 2025 Wass Updates • Powered by Ben
+</footer>
+
+<script>
+  // 🔥 FIREBASE CONFIG (REPLACE WITH YOUR OWN)
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "SENDER_ID",
+    appId: "APP_ID"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  let confirmationResult;
+
+  window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha', { size: 'invisible' });
+
+  function sendOTP(){
+    const phone = document.getElementById('phone').value;
+    auth.signInWithPhoneNumber(phone, window.recaptchaVerifier)
+      .then(result => {
+        confirmationResult = result;
+        document.getElementById('login').classList.add('hidden');
+        document.getElementById('verify').classList.remove('hidden');
+      })
+      .catch(err => alert(err.message));
+  }
+
+  function verifyOTP(){
+    const code = document.getElementById('otp').value;
+    confirmationResult.confirm(code).then(res => {
+      db.collection('users').add({
+        phone: res.user.phoneNumber,
+        time: new Date().toLocaleString()
+      });
+      document.getElementById('verify').classList.add('hidden');
+      document.getElementById('home').classList.remove('hidden');
+    }).catch(()=>alert('Invalid code'));
+  }
+
+  function showAdmin(){document.getElementById('admin').classList.remove('hidden')}
+
+  function adminLogin(){
+    if(document.getElementById('adminPin').value==='0000'){
+      db.collection('users').get().then(snap=>{
+        let html='<h4>Logged Numbers</h4>';
+        snap.forEach(d=>{html+=`<p>${d.data().phone} | ${d.data().time}</p>`});
+        document.getElementById('adminData').innerHTML=html;
+      })
+    } else alert('Wrong PIN');
+  }
+</script>
+</body>
+</html>
